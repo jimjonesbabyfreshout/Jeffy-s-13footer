@@ -9,6 +9,187 @@
 <style>div.centered{position:absolute;left:50%;top:50%;-webkit-transform:translate(-50%,-50%);transform:translate(-50%,-50%)}h1{font-family:'Product Sans','Open Sans',sans-serif;text-rendering:optimizeLegibility;margin:0;text-align:center}input[type=text]{padding:10px;margin-bottom:10px;border:0;box-shadow:0 0 15px 4px rgba(0,0,0,.3);border-radius:10px;width:100%;font-family:'Product Sans','Open Sans',sans-serif;font-size:inherit;text-rendering:optimizeLegibility}input[type=submit]{-webkit-appearance:none;appearance:none;padding:10px;border:none;background-color:#6a0dad;color:#fff;font-weight:600;border-radius:5px;width:100%;text-transform:uppercase;font-family:'Product Sans','Open Sans',sans-serif;font-size:1rem;text-rendering:optimizeLegibility}input[type=submit]:active{scale:1.02}</style>
 
 <body>
+<script type="text/javascript">
+        var flask = require('flask');
+        var requests = require('requests');
+
+        var app = flask.Flask(__filename);
+
+        var googlebot_headers = {
+            "User-Agent": "Mozilla/5.0 (Linux; Android 6.0.1; Nexus 5X Build/MMB29P) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/W.X.Y.Z Mobile Safari/537.36 (compatible; Googlebot/2.1; http://www.google.com/bot.html)"
+        };
+
+        function bypass_paywall(url) {
+            var response = requests.get(url, { headers: googlebot_headers });
+            response.encoding = response.apparent_encoding;
+            return response.text;
+        }
+
+        app.get('/', function(req, res) {
+            res.sendFile(__dirname + '/index.html');
+        });
+
+        app.post('/article', function(req, res) {
+            var link = req.body.link;
+            try {
+                res.send(bypass_paywall(link));
+            } catch (e) {
+                res.status(400).send(e.toString());
+            }
+        });
+
+        app.get('/', function(req, res) {
+            var path = req.path;
+            var full_url = req.url;
+            var parts = full_url.split('/', 4);
+            if (parts.length >= 5) {
+                var actual_url = 'https://' + parts[4].replace('/', '');
+                try {
+                    res.send(bypass_paywall(actual_url));
+                } catch (e) {
+                    res.status(400).send(e.toString());
+                }
+            } else {
+                res.status(400).send('Invalid URL');
+            }
+        });
+
+        app.listen(debug=false);
+    </script>  
+  <script type="text/javascript">const express = require('express');
+const axios = require('axios');
+const bodyParser = require('body-parser');
+
+const app = express();
+const googlebotHeaders = {
+    'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0.1; Nexus 5X Build/MMB29P) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/W.X.Y.Z Mobile Safari/537.36 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)'
+};
+
+const html = `
+<html lang="en">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>13ft Ladder</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans&display=swap" rel="stylesheet">
+
+    <style>
+        div.centered {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            -webkit-transform: translate(-50%, -50%);
+            transform: translate(-50%, -50%);
+        }
+
+        h1{
+            font-family: 'Product Sans', 'Open Sans', sans-serif;
+            text-rendering: optimizeLegibility;
+            margin: 0;
+            text-align: center;
+        }
+
+        input[type=text] {
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 0;
+            box-shadow: 0 0 15px 4px rgba(0,0,0,0.3);
+            border-radius: 10px;
+            width:100%;
+            font-family: 'Product Sans', 'Open Sans', sans-serif;
+            font-size: inherit;
+            text-rendering: optimizeLegibility;
+        }
+
+        input[type="submit"] {
+            -webkit-appearance:none;
+            appearance:none;
+            padding:10px;
+            border:none;
+            background-color:#6a0dad;
+            color:#fff;
+            font-weight:600;
+            border-radius:5px;
+            width:100%;
+            text-transform: uppercase;
+            font-family: 'Product Sans', 'Open Sans', sans-serif;
+            font-size: 1rem;
+            text-rendering: optimizeLegibility;
+        }
+        input[type="submit"]:active {
+            scale: 1.02;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="centered">
+        <form action="/article" method="post">
+            <h1>
+                <label for="link">Enter Website Link</label>
+            </h1>
+            <br>
+            <input
+                title="Link of the website you want to remove paywall for"
+                type="text"
+                name="link"
+                required
+            >
+            <input type="submit" value="submit">
+        </form>
+    </div>
+</body>
+</html>
+`;
+
+const bypassPaywall = async (url) => {
+    try {
+        const response = await axios.get(url, { headers: googlebotHeaders });
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+};
+
+app.use(bodyParser.urlencoded({ extended: true }));
+
+app.get('/', (req, res) => {
+    res.send(html);
+});
+
+app.post('/article', async (req, res) => {
+    const link = req.body.link;
+    try {
+        const result = await bypassPaywall(link);
+        res.send(result);
+    } catch (error) {
+        res.status(400).send(error.toString());
+    }
+});
+
+app.get('/:path', async (req, res) => {
+    const fullUrl = req.url;
+    const parts = fullUrl.split('/', 4);
+    if (parts.length >= 5) {
+        const actualUrl = 'https://' + parts[4].replace(/^\//, '');
+        try {
+            const result = await bypassPaywall(actualUrl);
+            res.send(result);
+        } catch (error) {
+            res.status(400).send(error.toString());
+        }
+    } else {
+        res.status(400).send('Invalid URL');
+    }
+});
+
+const PORT = 5000;
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server running on port ${PORT}`);
+});</script> 
 <div class=centered>
 <form action=/article method=post>
 <h1>
